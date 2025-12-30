@@ -1,0 +1,37 @@
+---
+description: Standards for Python Django 5 Backend Development
+globs: ["backend/**/*.py", "core/**/*.py", "manage.py"]
+alwaysApply: true
+---
+
+# 1. Technology Stack
+- **Python:** 3.12 (Use modern features like type hints `str | None` and f-strings).
+- **Framework:** Django 5.0+.
+- **API:** Django REST Framework (DRF).
+- **Docs:** drf-spectacular (OpenAPI 3.0).
+
+# 2. Coding Style & Formatting
+- **Naming:** Use `snake_case` for variables/functions and `PascalCase` for Classes.
+- **Type Hinting:** ALL function arguments and return values must be type-hinted.
+  - *Good:* `def calculate_price(amount: Decimal) -> Decimal:`
+  - *Bad:* `def calculate_price(amount):`
+- **Imports:** Sort imports: Standard Library -> Django Core -> Third Party -> Local Apps.
+
+# 3. Architecture Rules
+- **Views:**
+  - Always use `ModelViewSet` from DRF.
+  - Do NOT use function-based views for APIs unless absolutely necessary.
+- **Serializers:**
+  - Always use `ModelSerializer`.
+  - Explicitly list fields in `class Meta` (avoid `fields = '__all__'`).
+- **Models:**
+  - Use `UUIDField` as the primary key (`id`) for security.
+  - Place "fat" logic (calculations, state changes) in Model methods, not in Views.
+
+# 4. Documentation (Critical for iOS Integration)
+- Every ViewSet must use `@extend_schema` to document what it returns.
+- If an endpoint returns a custom error, document it so the iOS team sees it.
+
+# 5. Testing
+- Use `pytest` syntax (if applicable) or standard `django.test.TestCase`.
+- Every new API endpoint requires a test case checking for HTTP 200 (Success) and HTTP 400 (Bad Input).
