@@ -172,13 +172,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Post'
+              $ref: '#/components/schemas/ShelfListing'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Post'
+              $ref: '#/components/schemas/ShelfListing'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Post'
+              $ref: '#/components/schemas/ShelfListing'
         required: true
       security:
       - cookieAuth: []
@@ -358,7 +358,11 @@ components:
           format: date-time
           readOnly: true
         is_for_sale:
-          type: string
+          type: boolean
+          readOnly: true
+        sale_item:
+          allOf:
+          - $ref: '#/components/schemas/SaleItem'
           readOnly: true
     Post:
       type: object
@@ -378,7 +382,11 @@ components:
           format: date-time
           readOnly: true
         is_for_sale:
-          type: string
+          type: boolean
+          readOnly: true
+        sale_item:
+          allOf:
+          - $ref: '#/components/schemas/SaleItem'
           readOnly: true
       required:
       - created_at
@@ -386,6 +394,31 @@ components:
       - id
       - image
       - is_for_sale
+      - sale_item
+    SaleItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        is_sold:
+          type: boolean
+      required:
+      - id
+      - price
+    ShelfListing:
+      type: object
+      properties:
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+      required:
+      - price
   securitySchemes:
     basicAuth:
       type: http

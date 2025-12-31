@@ -1,0 +1,20 @@
+---
+description: Standards for iOS SwiftUI Development
+globs: ["PotteryClient/**/*.swift"]
+alwaysApply: true
+---
+
+# 1. Tech Stack
+- **Language:** Swift 6 (Use modern concurrency `async/await`).
+- **UI:** SwiftUI (Use `LazyVStack` for feeds).
+- **Images:** Always use `KFImage` (Kingfisher) for remote images.
+
+# 2. Architecture (MVVM)
+- **Models:** `Codable` structs that match the Django API exactly.
+- **ViewModels:** `@Observable` classes that manage state (loading, data, error).
+- **Views:** Dumb UI components that only read from ViewModels.
+
+# 3. Networking
+- **Base URL:** Use `http://127.0.0.1:8000` for local simulator testing.
+- **Service:** Create a singleton `APIService.shared`.
+- **Parsing:** Use `JSONDecoder` with `keyDecodingStrategy = .convertFromSnakeCase`.

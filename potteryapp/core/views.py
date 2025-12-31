@@ -1,28 +1,35 @@
-from django.shortcuts import render
-
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 from .models import Post, SaleItem
-from .serializers import PostSerializer, SaleItemSerializer
+from .serializers import PostSerializer, ShelfListingSerializer
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
+    # 1. Add this decorator to tell schema.yaml what to expect
+    @extend_schema(
+        request=ShelfListingSerializer,  # "I expect a price"
+        responses=PostSerializer         # "I will return the updated Post"
+    )
     @action(detail=True, methods=['post'])
     def list_on_shelf(self, request, pk=None):
         post = self.get_object()
-        if hasattr(post, 'saleitem'):
-            return Response({'detail': 'Post is already on shelf.'}, status=status.HTTP_400_BAD_REQUEST)
-        price = request.data.get('price')
-        if price is None:
-            return Response({'detail': 'Price is required.'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            price = float(price)
-            if price <= 0:
-                raise ValueError()
-        except (ValueError, TypeError):
-            return Response({'detail': 'Invalid price.'}, status=status.HTTP_400_BAD_REQUEST)
-        sale_item = SaleItem.objects.create(post=post, price=price)
-        return Response(SaleItemSerializer(sale_item).data, status=status.HTTP_201_CREATED)
+        
+        # Validate the price input
+        serializer = ShelfListingSerializer(data=request.data)
+        if serializer.is_valid():
+            price = serializer.validated_data['price']
+            
+            # Create or update the sale item
+            SaleItem.objects.update_or_create(
+                post=post,
+                defaults={'price': price, 'is_sold': False}
+            )
+            
+            # Return the updated post
+            return Response(PostSerializer(post).data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
