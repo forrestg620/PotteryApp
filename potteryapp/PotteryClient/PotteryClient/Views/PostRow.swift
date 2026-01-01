@@ -297,7 +297,7 @@ struct PostRow: View {
                 if let creatorName = post.creatorUsername {
                     Text(creatorName)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.primary)
                         .padding(.leading, 16)
                 }
                 

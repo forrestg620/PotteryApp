@@ -12,7 +12,7 @@ class FeedViewModel {
         errorMessage = nil
 
         do {
-            self.posts = try await APIService.shared.fetchPosts()
+            self.posts = try await NetworkManager.shared.fetchPosts()
         } catch {
             self.errorMessage = "Failed to load: \(error.localizedDescription)"
             print("Error: \(error)")
