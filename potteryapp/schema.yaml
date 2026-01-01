@@ -340,6 +340,14 @@ paths:
           description: ''
 components:
   schemas:
+    MediaTypeEnum:
+      enum:
+      - image
+      - video
+      type: string
+      description: |-
+        * `image` - Image
+        * `video` - Video
     PatchedPost:
       type: object
       properties:
@@ -348,9 +356,9 @@ components:
           readOnly: true
         creator:
           type: integer
-        image:
+        creator_username:
           type: string
-          format: uri
+          readOnly: true
         caption:
           type: string
         created_at:
@@ -363,6 +371,11 @@ components:
         sale_item:
           allOf:
           - $ref: '#/components/schemas/SaleItem'
+          readOnly: true
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostMedia'
           readOnly: true
     Post:
       type: object
@@ -372,9 +385,9 @@ components:
           readOnly: true
         creator:
           type: integer
-        image:
+        creator_username:
           type: string
-          format: uri
+          readOnly: true
         caption:
           type: string
         created_at:
@@ -388,13 +401,39 @@ components:
           allOf:
           - $ref: '#/components/schemas/SaleItem'
           readOnly: true
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostMedia'
+          readOnly: true
       required:
       - created_at
       - creator
+      - creator_username
       - id
-      - image
       - is_for_sale
+      - media
       - sale_item
+    PostMedia:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        file_url:
+          type: string
+          readOnly: true
+        media_type:
+          $ref: '#/components/schemas/MediaTypeEnum'
+        order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Order in which media appears
+      required:
+      - file_url
+      - id
     SaleItem:
       type: object
       properties:

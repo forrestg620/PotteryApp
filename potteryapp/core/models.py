@@ -5,7 +5,6 @@ from django.conf import settings
 
 class Post(models.Model):
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='posts')
-    image = models.ImageField(upload_to='posts/images/')
     caption = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -15,6 +14,29 @@ class Post(models.Model):
 
     def __str__(self):
         return f"Post by {self.creator} at {self.created_at}"
+
+
+class PostMedia(models.Model):
+    MEDIA_TYPE_IMAGE = 'image'
+    MEDIA_TYPE_VIDEO = 'video'
+    
+    MEDIA_TYPE_CHOICES = [
+        (MEDIA_TYPE_IMAGE, 'Image'),
+        (MEDIA_TYPE_VIDEO, 'Video'),
+    ]
+    
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='media')
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES, default=MEDIA_TYPE_IMAGE)
+    file = models.FileField(upload_to='posts/media/')
+    order = models.PositiveIntegerField(default=0, help_text='Order in which media appears')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'created_at']
+        verbose_name_plural = 'Post Media'
+
+    def __str__(self):
+        return f"{self.get_media_type_display()} for Post {self.post.id} (order: {self.order})"
 
 class SaleItem(models.Model):
     post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='saleitem')

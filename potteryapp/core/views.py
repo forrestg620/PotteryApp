@@ -30,6 +30,6 @@ class PostViewSet(viewsets.ModelViewSet):
             )
             
             # Return the updated post
-            return Response(PostSerializer(post).data)
+            return Response(PostSerializer(post, context={'request': request}).data)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
