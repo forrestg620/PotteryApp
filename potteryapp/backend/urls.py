@@ -33,6 +33,12 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
 
-# Serve media files in development
+# Serve media files in development with proper headers for video streaming
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    from django.urls import re_path
+    from core.views import serve_media_with_range
+    
+    # Custom media serving to support range requests for videos
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve_media_with_range),
+    ]
