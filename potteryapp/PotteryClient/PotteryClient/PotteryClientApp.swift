@@ -11,7 +11,7 @@ import SwiftUI
 struct PotteryClientApp: App {
     var body: some Scene {
         WindowGroup {
-            FeedView()
+            ContentView()
         }
     }
 }

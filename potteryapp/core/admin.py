@@ -76,3 +76,10 @@ class PostMediaAdmin(admin.ModelAdmin):
                 return format_html('<span style="color: red;">Error: {}</span>', str(e))
         return 'No file'
     file_url_display.short_description = 'File URL'
+
+@admin.register(SaleItem)
+class SaleItemAdmin(admin.ModelAdmin):
+    list_display = ('id', 'post', 'price', 'is_sold')
+    list_filter = ('is_sold',)
+    search_fields = ('post__caption', 'post__id')
+    fields = ('post', 'price', 'is_sold')

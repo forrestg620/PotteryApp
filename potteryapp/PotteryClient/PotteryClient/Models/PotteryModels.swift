@@ -20,6 +20,16 @@ struct Post: Codable, Identifiable {
         case saleItem = "sale_item"
         case media
     }
+    
+    // Computed property to get the URL of the first media item (cover image)
+    var coverImageURL: URL? {
+        guard let firstMedia = media.first,
+              let fileUrl = firstMedia.fileUrl,
+              !fileUrl.isEmpty else {
+            return nil
+        }
+        return URL(string: fileUrl)
+    }
 }
 
 struct PostMedia: Codable, Identifiable {
