@@ -23,24 +23,42 @@ struct Post: Codable, Identifiable {
     
     // Computed property to get the URL of the first media item (cover image)
     var coverImageURL: URL? {
-        guard let firstMedia = media.first,
-              let fileUrl = firstMedia.fileUrl,
-              !fileUrl.isEmpty else {
+        guard let firstMedia = media.first else {
             return nil
         }
-        return URL(string: fileUrl)
+        
+        // If it's an image, use fileUrl
+        if firstMedia.mediaType == "image" {
+            if let fileUrl = firstMedia.fileUrl, !fileUrl.isEmpty {
+                return URL(string: fileUrl)
+            }
+        }
+        // If it's a video, use thumbnailUrl
+        else if firstMedia.mediaType == "video" {
+            if let thumbnailUrl = firstMedia.thumbnailUrl, !thumbnailUrl.isEmpty {
+                return URL(string: thumbnailUrl)
+            }
+            // Fallback to fileUrl if no thumbnail
+            if let fileUrl = firstMedia.fileUrl, !fileUrl.isEmpty {
+                return URL(string: fileUrl)
+            }
+        }
+        
+        return nil
     }
 }
 
 struct PostMedia: Codable, Identifiable {
     let id: Int
     let fileUrl: String?
+    let thumbnailUrl: String?
     let mediaType: String
     let order: Int
 
     enum CodingKeys: String, CodingKey {
         case id
         case fileUrl = "file_url"
+        case thumbnailUrl = "thumbnail_url"
         case mediaType = "media_type"
         case order
     }

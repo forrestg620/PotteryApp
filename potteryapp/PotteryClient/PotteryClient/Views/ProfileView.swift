@@ -66,10 +66,10 @@ struct ProfileView: View {
                     } else {
                         LazyVGrid(columns: columns, spacing: 4) {
                             ForEach(filteredPosts(), id: \.id) { post in
-                                ZStack(alignment: .bottomTrailing) {
-                                    // Square image with aspect ratio
-                                    if let url = post.coverImageURL {
-                                        KFImage(url)
+                                GeometryReader { geometry in
+                                    ZStack {
+                                        // Square image with aspect ratio - crop instead of resize
+                                        KFImage(post.coverImageURL)
                                             .placeholder {
                                                 Rectangle()
                                                     .fill(Color.gray.opacity(0.2))
@@ -82,34 +82,48 @@ struct ProfileView: View {
                                                     )
                                             }
                                             .resizable()
-                                            .aspectRatio(1, contentMode: .fill)
+                                            .scaledToFill()
+                                            .frame(width: geometry.size.width, height: geometry.size.width)
                                             .clipped()
-                                    } else {
-                                        Rectangle()
-                                            .fill(Color.gray.opacity(0.1))
-                                            .aspectRatio(1, contentMode: .fill)
-                                            .overlay(
-                                                Image(systemName: "photo")
-                                                    .resizable()
-                                                    .scaledToFit()
-                                                    .foregroundColor(.gray)
-                                                    .padding(12)
-                                            )
-                                    }
-                                    
-                                    if post.saleItem != nil {
-                                        // Sale badge
-                                        ZStack {
-                                            Circle()
-                                                .fill(Color.green)
-                                                .frame(width: 24, height: 24)
-                                            Text("$")
-                                                .font(.caption).bold()
-                                                .foregroundColor(.white)
+                                        
+                                        // Play icon overlay for videos (top trailing corner)
+                                        if post.media.first?.mediaType == "video" {
+                                            VStack {
+                                                HStack {
+                                                    Spacer()
+                                                    Image(systemName: "play.fill")
+                                                        .font(.caption)
+                                                        .foregroundColor(.white)
+                                                        .padding(6)
+                                                        .background(Color.black.opacity(0.6))
+                                                        .clipShape(Circle())
+                                                        .padding(6)
+                                                }
+                                                Spacer()
+                                            }
                                         }
-                                        .padding(6)
+                                        
+                                        // Sale badge (bottom trailing)
+                                        if post.saleItem != nil {
+                                            VStack {
+                                                Spacer()
+                                                HStack {
+                                                    Spacer()
+                                                    ZStack {
+                                                        Circle()
+                                                            .fill(Color.green)
+                                                            .frame(width: 24, height: 24)
+                                                        Text("$")
+                                                            .font(.caption).bold()
+                                                            .foregroundColor(.white)
+                                                    }
+                                                    .padding(6)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
+                                .aspectRatio(1, contentMode: .fit)
                                 .cornerRadius(6)
                                 .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 2)
                             }

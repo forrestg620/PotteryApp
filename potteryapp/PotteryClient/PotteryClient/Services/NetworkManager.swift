@@ -37,19 +37,29 @@ class NetworkManager {
         let decoder = JSONDecoder()
         let posts = try decoder.decode([Post].self, from: data)
         
-        // 6. Fix relative URLs in media files
+        // 6. Fix relative URLs in media files and thumbnails
         let fixedPosts = posts.map { post -> Post in
             let fixedMedia = post.media.map { media -> PostMedia in
+                var fixedFileUrl = media.fileUrl
+                var fixedThumbnailUrl = media.thumbnailUrl
+                
+                // Fix file URL if it's relative
                 if let fileUrl = media.fileUrl, fileUrl.hasPrefix("/") {
-                    // Prepend base URL to relative URLs
-                    return PostMedia(
-                        id: media.id,
-                        fileUrl: "\(baseURL)\(fileUrl)",
-                        mediaType: media.mediaType,
-                        order: media.order
-                    )
+                    fixedFileUrl = "\(baseURL)\(fileUrl)"
                 }
-                return media
+                
+                // Fix thumbnail URL if it's relative
+                if let thumbnailUrl = media.thumbnailUrl, thumbnailUrl.hasPrefix("/") {
+                    fixedThumbnailUrl = "\(baseURL)\(thumbnailUrl)"
+                }
+                
+                return PostMedia(
+                    id: media.id,
+                    fileUrl: fixedFileUrl,
+                    thumbnailUrl: fixedThumbnailUrl,
+                    mediaType: media.mediaType,
+                    order: media.order
+                )
             }
             
             return Post(
