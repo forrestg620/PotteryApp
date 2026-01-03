@@ -33,9 +33,22 @@
 		7166A5592F04BB55000C5408 /* PotteryClientUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PotteryClientUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		7118FA062F08F2B200BA1DF4 /* Exceptions for "PotteryClient" folder in "PotteryClient" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7166A5412F04BB54000C5408 /* PotteryClient */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7166A5442F04BB54000C5408 /* PotteryClient */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7118FA062F08F2B200BA1DF4 /* Exceptions for "PotteryClient" folder in "PotteryClient" target */,
+			);
 			path = PotteryClient;
 			sourceTree = "<group>";
 		};
@@ -415,6 +428,11 @@
 				DEVELOPMENT_TEAM = M557LQWF63;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PotteryClient/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "PotteryClient needs camera access to let you take photos of your work.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PotteryClient needs microphone access to record sound for your videos.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "PotteryClient needs library access to upload existing photos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -443,6 +461,11 @@
 				DEVELOPMENT_TEAM = M557LQWF63;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PotteryClient/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "PotteryClient needs camera access to let you take photos of your work.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PotteryClient needs microphone access to record sound for your videos.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "PotteryClient needs library access to upload existing photos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

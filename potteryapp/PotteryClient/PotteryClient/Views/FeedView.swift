@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FeedView: View {
     @State private var viewModel = FeedViewModel()
+    @State private var showCreatePost = false
 
     var body: some View {
         NavigationStack {
@@ -20,6 +21,18 @@ struct FeedView: View {
                 }
             }
             .navigationTitle("Pottery Feed")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showCreatePost = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showCreatePost) {
+                CreatePostView()
+            }
             .task {
                 await viewModel.loadPosts()
             }
