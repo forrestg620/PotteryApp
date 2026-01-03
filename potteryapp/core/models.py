@@ -69,22 +69,18 @@ class PostMedia(models.Model):
             # Only generate if it's new or file was changed, and thumbnail doesn't exist
             if (is_new or file_changed) and not has_thumbnail:
                 try:
-                    print(f"Generating thumbnail for video: {self.file.name}")
                     # Get the video file path
                     video_path = self.file.path
-                    print(f"Video path: {video_path}")
                     
                     # Check if file exists
                     if os.path.exists(video_path):
                         # Open video file
                         cap = cv2.VideoCapture(video_path)
-                        print(f"VideoCapture opened: {cap.isOpened()}")
                         
                         if cap.isOpened():
                             # Read the first frame
                             ret, frame = cap.read()
                             cap.release()
-                            print(f"Frame read successfully: {ret}, frame is not None: {frame is not None}")
                             
                             if ret and frame is not None:
                                 # Convert BGR to RGB (OpenCV uses BGR, PIL uses RGB)
@@ -104,28 +100,18 @@ class PostMedia(models.Model):
                                 # Generate thumbnail filename
                                 video_filename = os.path.basename(self.file.name)
                                 thumbnail_filename = f"thumb_{os.path.splitext(video_filename)[0]}.jpg"
-                                print(f"Saving thumbnail as: {thumbnail_filename}")
                                 
                                 # Save thumbnail - this will update self.thumbnail
                                 # Use update_fields to only update the thumbnail field and avoid the UNIQUE constraint error
                                 self.thumbnail.save(thumbnail_filename, thumbnail_content, save=False)
-                                print(f"Thumbnail saved. Thumbnail name: {self.thumbnail.name}")
                                 
                                 # Save again to persist the thumbnail, but only update the thumbnail field
                                 # This prevents the UNIQUE constraint error
                                 super().save(update_fields=['thumbnail'])
-                                print(f"PostMedia saved with thumbnail: {self.thumbnail.name}")
-                            else:
-                                print("Failed to read frame from video")
-                        else:
-                            print("Failed to open video file with VideoCapture")
-                    else:
-                        print(f"Video file does not exist at path: {video_path}")
                 except Exception as e:
-                    # If thumbnail generation fails, log the error
-                    import traceback
-                    print(f"Error generating thumbnail: {e}")
-                    print(traceback.format_exc())
+                    # If thumbnail generation fails, continue without thumbnail
+                    # You might want to log this error in production
+                    pass
 
 class SaleItem(models.Model):
     post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='saleitem')

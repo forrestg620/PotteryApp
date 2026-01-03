@@ -74,18 +74,13 @@ class PostViewSet(viewsets.ModelViewSet):
             # Refresh from database to get the generated thumbnail
             # The save() method generates the thumbnail, so we need to refresh
             post_media.refresh_from_db()
-            print(f"PostMedia after refresh - has thumbnail: {bool(post_media.thumbnail)}, thumbnail name: {post_media.thumbnail.name if post_media.thumbnail else 'None'}")
         
         # Refresh the post to get updated media with thumbnails
         # This ensures the media relationship includes the generated thumbnails
         post.refresh_from_db()
         
         # Force reload of media to ensure thumbnails are included
-        # Get fresh media from database
-        media_list = list(post.media.all())
-        print(f"Post media count: {len(media_list)}")
-        for media in media_list:
-            print(f"Media {media.id}: type={media.media_type}, has_thumbnail={bool(media.thumbnail)}, thumbnail_name={media.thumbnail.name if media.thumbnail else 'None'}")
+        list(post.media.all())
         
         # Return the created post
         serializer = PostSerializer(post, context={'request': request})

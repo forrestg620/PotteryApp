@@ -1,4 +1,6 @@
 import SwiftUI
+import AVKit
+import AVFoundation
 
 
 struct CreatePostView: View {
@@ -6,6 +8,7 @@ struct CreatePostView: View {
     @State private var caption: String = ""
     @State private var selectedImage: UIImage?
     @State private var videoURL: URL? = nil
+    @State private var videoThumbnail: UIImage? = nil
     @State private var showPicker: Bool = false
     @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
     @State private var showSourceSelection: Bool = false
@@ -39,20 +42,27 @@ struct CreatePostView: View {
                 Button(action: {
                     showSourceSelection = true
                 }) {
-                    if let videoURL = videoURL {
-                        VStack(spacing: 10) {
-                            Image(systemName: "video.fill")
+                    if let videoThumbnail = videoThumbnail {
+                        ZStack {
+                            Image(uiImage: videoThumbnail)
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 72, height: 72)
-                                .foregroundColor(.blue)
-                            Text("Video Selected")
-                                .foregroundColor(.primary)
-                                .font(.headline)
+                                .frame(maxWidth: 260, maxHeight: 260)
+                                .cornerRadius(10)
+                                .shadow(radius: 5)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                                )
+                            
+                            // Play icon overlay
+                            Image(systemName: "play.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 60, height: 60)
+                                .foregroundColor(.white)
+                                .shadow(radius: 5)
                         }
-                        .frame(width: 180, height: 180)
-                        .background(Color.blue.opacity(0.08))
-                        .cornerRadius(16)
                     } else if let image = selectedImage {
                         Image(uiImage: image)
                             .resizable()
@@ -96,6 +106,13 @@ struct CreatePostView: View {
                 }
                 .sheet(isPresented: $showPicker) {
                     ImagePicker(selectedImage: $selectedImage, videoURL: $videoURL, sourceType: sourceType)
+                }
+                .onChange(of: videoURL) { oldValue, newValue in
+                    if let newValue = newValue {
+                        generateVideoThumbnail(from: newValue)
+                    } else {
+                        videoThumbnail = nil
+                    }
                 }
                 Spacer()
             }
@@ -153,6 +170,23 @@ struct CreatePostView: View {
                     showingError = true
                     isUploading = false
                 }
+            }
+        }
+    }
+    
+    private func generateVideoThumbnail(from url: URL) {
+        Task {
+            let asset = AVAsset(url: url)
+            let imageGenerator = AVAssetImageGenerator(asset: asset)
+            imageGenerator.appliesPreferredTrackTransform = true
+            
+            do {
+                let cgImage = try await imageGenerator.image(at: CMTime.zero).image
+                await MainActor.run {
+                    videoThumbnail = UIImage(cgImage: cgImage)
+                }
+            } catch {
+                print("Failed to generate video thumbnail: \(error)")
             }
         }
     }
