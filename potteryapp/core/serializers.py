@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import Post, SaleItem, PostMedia
+from django.contrib.auth import get_user_model
+from .models import Post, SaleItem, PostMedia, Profile
+
+User = get_user_model()
 
 class SaleItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -63,3 +66,58 @@ class PostSerializer(serializers.ModelSerializer):
 # NEW: A tiny serializer just for the "List on Shelf" action
 class ShelfListingSerializer(serializers.Serializer):
     price = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+    username = serializers.CharField(read_only=True, source='user.username')
+    avatar = serializers.ImageField(write_only=True, required=False)
+    
+    class Meta:
+        model = Profile
+        fields = ['username', 'avatar_url', 'intro', 'avatar']
+    
+    def get_avatar_url(self, obj):
+        request = self.context.get('request')
+        if obj.avatar and obj.avatar.name:
+            try:
+                avatar_url = obj.avatar.url
+                if request:
+                    absolute_url = request.build_absolute_uri(avatar_url)
+                    return absolute_url
+                return avatar_url
+            except (ValueError, AttributeError):
+                return None
+        return None
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(write_only=True, required=False)
+    password = serializers.CharField(write_only=True, required=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    
+    class Meta:
+        model = User
+        fields = ['username', 'password', 'email', 'avatar']
+    
+    def create(self, validated_data):
+        # Extract avatar from validated_data
+        avatar = validated_data.pop('avatar', None)
+        
+        # Extract password
+        password = validated_data.pop('password')
+        
+        # Create the user using create_user (this hashes the password)
+        user = User.objects.create_user(
+            username=validated_data.get('username'),
+            email=validated_data.get('email', ''),
+            password=password
+        )
+        
+        # If avatar is provided, create or update the Profile
+        if avatar:
+            profile, created = Profile.objects.get_or_create(user=user)
+            profile.avatar = avatar
+            profile.save()
+        
+        return user

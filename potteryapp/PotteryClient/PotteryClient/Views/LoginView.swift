@@ -5,6 +5,7 @@ struct LoginView: View {
     @State private var password: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
+    @State private var showSignUp = false
     @FocusState private var focusedField: Field?
 
     enum Field {
@@ -76,9 +77,21 @@ struct LoginView: View {
                     .padding(.horizontal, 32)
             }
             
+            Button(action: {
+                showSignUp = true
+            }) {
+                Text("Don't have an account? Sign Up")
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                    .padding(.top, 20)
+            }
+            
             Spacer()
         }
         .background(Color(UIColor.systemBackground).ignoresSafeArea())
+        .sheet(isPresented: $showSignUp) {
+            SignUpView()
+        }
     }
     
     private func login() {

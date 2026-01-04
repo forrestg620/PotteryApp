@@ -113,6 +113,17 @@ class PostMedia(models.Model):
                     # You might want to log this error in production
                     pass
 
+class Profile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    intro = models.TextField(blank=True, null=True, help_text='User self-introduction')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Profile for {self.user.username}"
+
+
 class SaleItem(models.Model):
     post = models.OneToOneField(Post, on_delete=models.CASCADE, related_name='saleitem')
     price = models.DecimalField(max_digits=10, decimal_places=2)

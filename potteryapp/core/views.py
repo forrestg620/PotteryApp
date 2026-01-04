@@ -2,15 +2,82 @@ import os
 from django.http import FileResponse, Http404, HttpResponse
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action, api_view
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 from drf_spectacular.utils import extend_schema
 import stripe
-from .models import Post, SaleItem, PostMedia
-from .serializers import PostSerializer, ShelfListingSerializer
+from .models import Post, SaleItem, PostMedia, Profile
+from .serializers import PostSerializer, ShelfListingSerializer, RegisterSerializer, ProfileSerializer
 
 User = get_user_model()
+
+
+class RegisterView(generics.CreateAPIView):
+    """
+    User registration endpoint.
+    Creates a new user and returns an auth token for immediate login.
+    """
+    queryset = User.objects.all()
+    serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Generate or get the auth token for the user
+        token, created = Token.objects.get_or_create(user=user)
+        
+        # Get avatar URL if profile exists
+        avatar_url = None
+        try:
+            # Refresh user from database to ensure profile relationship is loaded
+            user.refresh_from_db()
+            if hasattr(user, 'profile'):
+                profile = user.profile
+                if profile.avatar and profile.avatar.name:
+                    avatar_url = request.build_absolute_uri(profile.avatar.url)
+        except (Profile.DoesNotExist, AttributeError):
+            pass
+        
+        # Return response with token and avatar
+        return Response({
+            'token': token.key,
+            'user_id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'avatar_url': avatar_url
+        }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'PUT', 'PATCH'])
+def get_current_user_profile(request):
+    """
+    Get or update the current authenticated user's profile information.
+    GET: Returns username, avatar_url, and intro.
+    PUT/PATCH: Updates intro (and optionally avatar).
+    """
+    if not request.user.is_authenticated:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    # Get or create profile for the user
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'GET':
+        serializer = ProfileSerializer(profile, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    elif request.method in ['PUT', 'PATCH']:
+        serializer = ProfileSerializer(profile, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # Set Stripe API key from settings
 if settings.STRIPE_SECRET_KEY:

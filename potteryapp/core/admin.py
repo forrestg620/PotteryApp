@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Post, SaleItem, PostMedia
+from django.utils.html import format_html
+from .models import Post, SaleItem, PostMedia, Profile
 
 # Inline admin for PostMedia
 class PostMediaInline(admin.TabularInline):
@@ -83,3 +84,45 @@ class SaleItemAdmin(admin.ModelAdmin):
     list_filter = ('is_sold',)
     search_fields = ('post__caption', 'post__id')
     fields = ('post', 'price', 'is_sold')
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'avatar_preview', 'intro_preview', 'created_at', 'updated_at')
+    list_filter = ('created_at', 'updated_at')
+    search_fields = ('user__username', 'user__email', 'intro')
+    readonly_fields = ('created_at', 'updated_at', 'avatar_url_display', 'avatar_preview')
+    fields = ('user', 'avatar', 'avatar_preview', 'avatar_url_display', 'intro', 'created_at', 'updated_at')
+    
+    def intro_preview(self, obj):
+        if obj.intro:
+            return obj.intro[:50] + '...' if len(obj.intro) > 50 else obj.intro
+        return '-'
+    intro_preview.short_description = 'Intro'
+    
+    def avatar_preview(self, obj):
+        if obj.avatar and obj.avatar.name:
+            try:
+                url = obj.avatar.url
+                absolute_url = f"http://127.0.0.1:8000{url}"
+                return format_html(
+                    '<img src="{}" style="max-width: 100px; max-height: 100px; border-radius: 50%;" />',
+                    absolute_url
+                )
+            except Exception as e:
+                return format_html('<span style="color: red;">Error: {}</span>', str(e))
+        return 'No avatar'
+    avatar_preview.short_description = 'Avatar Preview'
+    
+    def avatar_url_display(self, obj):
+        if obj.avatar and obj.avatar.name:
+            try:
+                url = obj.avatar.url
+                absolute_url = f"http://127.0.0.1:8000{url}"
+                return format_html(
+                    '<a href="{}" target="_blank">{}</a><br><small>Relative: {}</small>',
+                    absolute_url, absolute_url, url
+                )
+            except Exception as e:
+                return format_html('<span style="color: red;">Error: {}</span>', str(e))
+        return 'No avatar'
+    avatar_url_display.short_description = 'Avatar URL'
