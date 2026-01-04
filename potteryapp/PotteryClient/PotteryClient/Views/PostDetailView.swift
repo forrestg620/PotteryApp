@@ -8,12 +8,35 @@
 import SwiftUI
 import Kingfisher
 import AVKit
+import StripePaymentSheet
 
 struct PostDetailView: View {
-    let post: Post
+    let initialPost: Post
+    @State private var post: Post
     @State private var showSellSheet = false
+    @State private var paymentSheet: PaymentSheet?
+    @State private var showPaymentSheet = false
+    @State private var showSuccessAlert = false
+    @State private var isCreatingPaymentIntent = false
+    @State private var errorMessage: String?
+    @State private var showingError = false
+    
+    init(post: Post) {
+        self.initialPost = post
+        self._post = State(initialValue: post)
+    }
 
     var body: some View {
+        contentView
+            .id(paymentSheet != nil ? "hasPaymentSheet" : "noPaymentSheet") // Force view update when paymentSheet changes
+            .modifier(PaymentSheetModifier(
+                showPaymentSheet: $showPaymentSheet,
+                paymentSheet: paymentSheet,
+                onCompletion: handlePaymentResult
+            ))
+    }
+    
+    private var contentView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Media display - support both images and videos
@@ -75,6 +98,35 @@ struct PostDetailView: View {
 
                 Divider()
 
+                // "Buy" Section - Show if item is for sale and not sold
+                if let saleItem = post.saleItem, !saleItem.isSold {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button(action: {
+                            handleBuyButton()
+                        }) {
+                            HStack {
+                                if isCreatingPaymentIntent {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Text("Buy for $\(saleItem.price)")
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                        }
+                        .disabled(isCreatingPaymentIntent)
+                        .padding(.top, 4)
+                    }
+                    .padding(.vertical, 8)
+                }
+
+                Divider()
+
                 // "Sell" Section
                 if post.saleItem == nil {
                     VStack(alignment: .leading, spacing: 8) {
@@ -107,6 +159,90 @@ struct PostDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showSellSheet) {
             ListForSaleView(post: post, isPresented: $showSellSheet)
+        }
+        .onChange(of: showPaymentSheet) { oldValue, newValue in
+            if !newValue && oldValue {
+                // Payment sheet was dismissed, reset the payment sheet
+                paymentSheet = nil
+            }
+        }
+        .alert("Success", isPresented: $showSuccessAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Pottery Purchased!")
+        }
+        .alert("Error", isPresented: $showingError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    private func handleBuyButton() {
+        print("PostDetailView: Buy button tapped for post \(post.id)")
+        isCreatingPaymentIntent = true
+        Task {
+            do {
+                print("PostDetailView: Creating payment intent...")
+                let clientSecret = try await NetworkManager.shared.createPaymentIntent(postId: post.id)
+                print("PostDetailView: Payment intent created, clientSecret: \(clientSecret.prefix(20))...")
+                
+                let configuration = PaymentSheet.Configuration()
+                let sheet = PaymentSheet(paymentIntentClientSecret: clientSecret, configuration: configuration)
+                
+                await MainActor.run {
+                    print("PostDetailView: Setting payment sheet and showing...")
+                    // Set paymentSheet first
+                    self.paymentSheet = sheet
+                    self.isCreatingPaymentIntent = false
+                    
+                    // Use DispatchQueue to ensure the view update happens
+                    DispatchQueue.main.async {
+                        print("PostDetailView: Showing payment sheet...")
+                        self.showPaymentSheet = true
+                        print("PostDetailView: showPaymentSheet = \(self.showPaymentSheet), paymentSheet is nil: \(self.paymentSheet == nil)")
+                    }
+                }
+            } catch {
+                print("PostDetailView: Error creating payment intent: \(error)")
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                    self.showingError = true
+                    self.isCreatingPaymentIntent = false
+                }
+            }
+        }
+    }
+    
+    private func handlePaymentResult(_ result: PaymentSheetResult) {
+        switch result {
+        case .completed:
+            // Mark item as sold on the backend
+            Task {
+                do {
+                    print("PostDetailView: Marking item as sold...")
+                    let updatedPost = try await NetworkManager.shared.markItemAsSold(postId: post.id)
+                    await MainActor.run {
+                        self.post = updatedPost
+                        self.showSuccessAlert = true
+                        print("PostDetailView: Item marked as sold, post updated")
+                    }
+                } catch {
+                    print("PostDetailView: Error marking item as sold: \(error)")
+                    await MainActor.run {
+                        self.errorMessage = "Payment completed but failed to update item status: \(error.localizedDescription)"
+                        self.showingError = true
+                    }
+                }
+            }
+        case .canceled:
+            // User canceled, do nothing
+            break
+        case .failed(let error):
+            errorMessage = error.localizedDescription
+            showingError = true
         }
     }
     
@@ -155,6 +291,25 @@ struct PostDetailView: View {
                         .foregroundColor(.gray)
                 )
         }
+    }
+}
+
+// ViewModifier to conditionally apply payment sheet
+struct PaymentSheetModifier: ViewModifier {
+    @Binding var showPaymentSheet: Bool
+    let paymentSheet: PaymentSheet?
+    let onCompletion: (PaymentSheetResult) -> Void
+    
+    func body(content: Content) -> some View {
+        content
+            .background(
+                Group {
+                    if let sheet = paymentSheet {
+                        Color.clear
+                            .paymentSheet(isPresented: $showPaymentSheet, paymentSheet: sheet, onCompletion: onCompletion)
+                    }
+                }
+            )
     }
 }
 

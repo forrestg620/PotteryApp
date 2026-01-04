@@ -14,7 +14,10 @@ struct FeedView: View {
                         Text(error).foregroundColor(.red)
                     } else {
                         ForEach(viewModel.posts) { post in
-                            PostRow(post: post)
+                            NavigationLink(destination: PostDetailView(post: post)) {
+                                PostRow(post: post)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                             Divider()
                         }
                     }

@@ -137,6 +137,15 @@ struct ProfileView: View {
                 }
             }
             .navigationBarTitle("Profile", displayMode: .inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        NetworkManager.shared.signOut()
+                    }) {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                    }
+                }
+            }
             .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
             .onAppear {
                 fetchPosts()
@@ -158,7 +167,8 @@ struct ProfileView: View {
         showError = false
         Task {
             do {
-                let fetched = try await NetworkManager.shared.fetchPosts()
+                // Fetch only the current user's posts
+                let fetched = try await NetworkManager.shared.fetchMyPosts()
                 DispatchQueue.main.async {
                     self.posts = fetched
                     self.isLoading = false

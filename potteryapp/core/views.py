@@ -3,17 +3,39 @@ from django.http import FileResponse, Http404, HttpResponse
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
+import stripe
 from .models import Post, SaleItem, PostMedia
 from .serializers import PostSerializer, ShelfListingSerializer
 
 User = get_user_model()
 
+# Set Stripe API key from settings
+if settings.STRIPE_SECRET_KEY:
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+else:
+    # Log a warning if Stripe key is not set (but don't fail at import time)
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning("STRIPE_SECRET_KEY is not set in environment variables")
+
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+
+    @action(detail=False, methods=['get'])
+    def my_posts(self, request):
+        """
+        Get all posts created by the currently authenticated user.
+        """
+        if not request.user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        posts = Post.objects.filter(creator=request.user).order_by('-created_at')
+        serializer = self.get_serializer(posts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def convert_to_shelf(self, request, pk=None):
@@ -84,22 +106,14 @@ class PostViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Get or create a default user (for now, use the first user or create one)
-        # In production, you'd use request.user if authenticated
-        try:
-            creator = User.objects.first()
-            if not creator:
-                # Create a default user if none exists
-                creator = User.objects.create_user(
-                    username='default_user',
-                    email='default@example.com',
-                    password='default_password'
-                )
-        except Exception as e:
+        # Use the authenticated user as the creator
+        if not request.user.is_authenticated:
             return Response(
-                {'error': f'Failed to get creator: {str(e)}'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {'error': 'Authentication required to create a post'}, 
+                status=status.HTTP_401_UNAUTHORIZED
             )
+        
+        creator = request.user
         
         # Create the Post
         post = Post.objects.create(
@@ -161,6 +175,98 @@ class PostViewSet(viewsets.ModelViewSet):
             return Response(PostSerializer(post, context={'request': request}).data)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@extend_schema(
+    request={'type': 'object', 'properties': {'post_id': {'type': 'integer'}}},
+    responses={200: {'type': 'object', 'properties': {'client_secret': {'type': 'string'}}}}
+)
+def create_payment_intent(request):
+    """
+    Create a Stripe PaymentIntent for purchasing a post.
+    Expects 'post_id' in request.data.
+    Returns the client_secret for the payment intent.
+    """
+    post_id = request.data.get('post_id')
+    
+    if not post_id:
+        return Response({'error': 'post_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Get the related SaleItem
+    try:
+        sale_item = post.saleitem
+    except SaleItem.DoesNotExist:
+        return Response({'error': 'This post is not for sale'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if item is already sold
+    if sale_item.is_sold:
+        return Response({'error': 'This item is already sold'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Calculate price in cents
+    price_decimal = sale_item.price
+    price_cents = int(float(price_decimal) * 100)
+    
+    # Check if Stripe API key is configured
+    if not settings.STRIPE_SECRET_KEY or not stripe.api_key:
+        return Response(
+            {'error': 'Stripe API key is not configured. Please set STRIPE_SECRET_KEY environment variable.'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+    try:
+        # Ensure Stripe API key is set (in case it wasn't set at import time)
+        if not stripe.api_key:
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+        
+        # Create Stripe PaymentIntent
+        intent = stripe.PaymentIntent.create(
+            amount=price_cents,
+            currency='usd',
+            metadata={'post_id': post.id}
+        )
+        
+        return Response({'client_secret': intent.client_secret}, status=status.HTTP_200_OK)
+    except stripe.error.StripeError as e:
+        return Response({'error': f'Stripe error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return Response({'error': f'Error creating payment intent: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def mark_item_as_sold(request):
+    """
+    Mark a SaleItem as sold after successful payment.
+    Expects 'post_id' in request.data.
+    """
+    post_id = request.data.get('post_id')
+    
+    if not post_id:
+        return Response({'error': 'post_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Get the related SaleItem
+    try:
+        sale_item = post.saleitem
+    except SaleItem.DoesNotExist:
+        return Response({'error': 'This post is not for sale'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Mark as sold
+    sale_item.is_sold = True
+    sale_item.save()
+    
+    # Return updated post data
+    serializer = PostSerializer(post, context={'request': request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 def serve_media_with_range(request, path):

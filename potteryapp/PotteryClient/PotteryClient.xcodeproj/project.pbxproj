@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7118FA112F0A4B0F00BA1DF4 /* Stripe in Frameworks */ = {isa = PBXBuildFile; productRef = 7118FA102F0A4B0F00BA1DF4 /* Stripe */; };
+		7118FA132F0A4B1D00BA1DF4 /* StripePaymentSheet in Frameworks */ = {isa = PBXBuildFile; productRef = 7118FA122F0A4B1D00BA1DF4 /* StripePaymentSheet */; };
 		7166A5B82F04EE14000C5408 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 7166A5B72F04EE14000C5408 /* Kingfisher */; };
 /* End PBXBuildFile section */
 
@@ -70,6 +72,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				7166A5B82F04EE14000C5408 /* Kingfisher in Frameworks */,
+				7118FA132F0A4B1D00BA1DF4 /* StripePaymentSheet in Frameworks */,
+				7118FA112F0A4B0F00BA1DF4 /* Stripe in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,6 +143,8 @@
 			name = PotteryClient;
 			packageProductDependencies = (
 				7166A5B72F04EE14000C5408 /* Kingfisher */,
+				7118FA102F0A4B0F00BA1DF4 /* Stripe */,
+				7118FA122F0A4B1D00BA1DF4 /* StripePaymentSheet */,
 			);
 			productName = PotteryClient;
 			productReference = 7166A5422F04BB54000C5408 /* PotteryClient.app */;
@@ -224,6 +230,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				7166A5942F04E92C000C5408 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				7118FA0F2F0A47F400BA1DF4 /* XCRemoteSwiftPackageReference "stripe-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7166A5432F04BB54000C5408 /* Products */;
@@ -594,6 +601,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7118FA0F2F0A47F400BA1DF4 /* XCRemoteSwiftPackageReference "stripe-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stripe/stripe-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 25.3.1;
+			};
+		};
 		7166A5942F04E92C000C5408 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/onevcat/Kingfisher";
@@ -605,6 +620,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7118FA102F0A4B0F00BA1DF4 /* Stripe */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7118FA0F2F0A47F400BA1DF4 /* XCRemoteSwiftPackageReference "stripe-ios" */;
+			productName = Stripe;
+		};
+		7118FA122F0A4B1D00BA1DF4 /* StripePaymentSheet */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7118FA0F2F0A47F400BA1DF4 /* XCRemoteSwiftPackageReference "stripe-ios" */;
+			productName = StripePaymentSheet;
+		};
 		7166A5B72F04EE14000C5408 /* Kingfisher */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7166A5942F04E92C000C5408 /* XCRemoteSwiftPackageReference "Kingfisher" */;

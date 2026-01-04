@@ -19,8 +19,9 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
+from rest_framework.authtoken.views import obtain_auth_token
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from core.views import PostViewSet
+from core.views import PostViewSet, create_payment_intent, mark_item_as_sold
 
 # Create a router and register our viewsets
 router = DefaultRouter()
@@ -29,6 +30,9 @@ router.register(r'posts', PostViewSet, basename='post')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
+    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),  # Token authentication endpoint
+    path('api/create-payment-intent/', create_payment_intent, name='create-payment-intent'),
+    path('api/mark-item-as-sold/', mark_item_as_sold, name='mark-item-as-sold'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
