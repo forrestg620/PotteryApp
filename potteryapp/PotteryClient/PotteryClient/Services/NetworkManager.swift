@@ -8,8 +8,8 @@ class NetworkManager: ObservableObject {
     
     // Base URL for the Django backend
     //   private let baseURL = "https://episcopally-jennifer-preaccessible.ngrok-free.dev"
-//    private let baseURL = "https://unpaid-luciana-unchronically.ngrok-free.dev"
-    private let baseURL = "http://127.0.0.1:8000"
+    private let baseURL = "https://unpaid-luciana-unchronically.ngrok-free.dev"
+//    private let baseURL = "http://127.0.0.1:8000"
     
     // UserDefaults keys
     private let authTokenKey = "authToken"

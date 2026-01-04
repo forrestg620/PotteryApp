@@ -436,6 +436,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PotteryClient/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Claymate;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "PotteryClient needs camera access to let you take photos of your work.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PotteryClient needs microphone access to record sound for your videos.";
@@ -469,6 +470,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PotteryClient/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Claymate;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "PotteryClient needs camera access to let you take photos of your work.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PotteryClient needs microphone access to record sound for your videos.";
