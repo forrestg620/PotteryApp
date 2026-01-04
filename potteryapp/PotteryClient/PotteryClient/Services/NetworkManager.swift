@@ -7,7 +7,8 @@ class NetworkManager: ObservableObject {
     static let shared = NetworkManager()
     
     // Base URL for the Django backend
-    //  private let baseURL = "https://episcopally-jennifer-preaccessible.ngrok-free.dev"
+    //   private let baseURL = "https://episcopally-jennifer-preaccessible.ngrok-free.dev"
+//    private let baseURL = "https://unpaid-luciana-unchronically.ngrok-free.dev"
     private let baseURL = "http://127.0.0.1:8000"
     
     // UserDefaults keys
@@ -65,14 +66,26 @@ class NetworkManager: ObservableObject {
         }
     }
     
+    // Published property for current user ID
+    @Published var currentUserId: Int? {
+        didSet {
+            if let userId = currentUserId {
+                UserDefaults.standard.set(userId, forKey: "currentUserId")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "currentUserId")
+            }
+        }
+    }
+    
     private init() {
         // Check if auth token exists on initialization
         if authToken != nil {
             isAuthenticated = true
-            // Load username, avatar URL, and intro from UserDefaults
+            // Load username, avatar URL, intro, and user ID from UserDefaults
             currentUsername = UserDefaults.standard.string(forKey: usernameKey)
             avatarURL = UserDefaults.standard.string(forKey: avatarURLKey)
             userIntro = UserDefaults.standard.string(forKey: "userIntro")
+            currentUserId = UserDefaults.standard.object(forKey: "currentUserId") as? Int
         }
     }
     
@@ -226,10 +239,13 @@ class NetworkManager: ObservableObject {
             ])
         }
         
-        // 8. Save token, username, avatar, and update authentication status
+        // 8. Save token, username, user_id, avatar, and update authentication status
         self.authToken = token
         if let username = json["username"] as? String {
             self.currentUsername = username
+        }
+        if let userId = json["user_id"] as? Int {
+            self.currentUserId = userId
         }
         if let avatarURL = json["avatar_url"] as? String, !avatarURL.isEmpty {
             // Fix relative URL if needed
@@ -252,9 +268,10 @@ class NetworkManager: ObservableObject {
     }
     
     func signOut() {
-        // Clear token, username, avatar, and intro (this also removes them from UserDefaults via the setters)
+        // Clear token, username, user_id, avatar, and intro (this also removes them from UserDefaults via the setters)
         authToken = nil
         currentUsername = nil
+        currentUserId = nil
         avatarURL = nil
         userIntro = nil
         isAuthenticated = false
@@ -299,9 +316,12 @@ class NetworkManager: ObservableObject {
             ])
         }
         
-        // 6. Update username, avatar URL, and intro
+        // 6. Update username, user_id, avatar URL, and intro
         if let username = json["username"] as? String {
             self.currentUsername = username
+        }
+        if let userId = json["user_id"] as? Int {
+            self.currentUserId = userId
         }
         if let avatarURL = json["avatar_url"] as? String, !avatarURL.isEmpty {
             // Fix relative URL if needed
@@ -539,6 +559,79 @@ class NetworkManager: ObservableObject {
         if let httpResponse = response as? HTTPURLResponse {
             guard (200...299).contains(httpResponse.statusCode) else {
                 // Try to decode error message from response
+                if let errorString = String(data: data, encoding: .utf8) {
+                    print("Server error response: \(errorString)")
+                    throw NSError(domain: "NetworkError", code: httpResponse.statusCode, userInfo: [
+                        NSLocalizedDescriptionKey: "Server error: \(httpResponse.statusCode)",
+                        "response": errorString
+                    ])
+                }
+                throw URLError(.badServerResponse)
+            }
+        }
+        
+        // 5. Decode JSON into Swift Objects
+        let decoder = JSONDecoder()
+        let posts = try decoder.decode([Post].self, from: data)
+        
+        // 6. Fix relative URLs in media files and thumbnails
+        let fixedPosts = posts.map { post -> Post in
+            let fixedMedia = post.media.map { media -> PostMedia in
+                var fixedFileUrl = media.fileUrl
+                var fixedThumbnailUrl = media.thumbnailUrl
+                
+                // Fix file URL if it's relative
+                if let fileUrl = media.fileUrl, fileUrl.hasPrefix("/") {
+                    fixedFileUrl = "\(baseURL)\(fileUrl)"
+                }
+                
+                // Fix thumbnail URL if it's relative
+                if let thumbnailUrl = media.thumbnailUrl, thumbnailUrl.hasPrefix("/") {
+                    fixedThumbnailUrl = "\(baseURL)\(thumbnailUrl)"
+                }
+                
+                return PostMedia(
+                    id: media.id,
+                    fileUrl: fixedFileUrl,
+                    thumbnailUrl: fixedThumbnailUrl,
+                    mediaType: media.mediaType,
+                    order: media.order
+                )
+            }
+            
+            return Post(
+                id: post.id,
+                creator: post.creator,
+                creatorUsername: post.creatorUsername,
+                caption: post.caption,
+                createdAt: post.createdAt,
+                isForSale: post.isForSale,
+                saleItem: post.saleItem,
+                media: fixedMedia
+            )
+        }
+        
+        return fixedPosts
+    }
+    
+    func fetchPostsByUserId(userId: Int) async throws -> [Post] {
+        // 1. Construct the URL with user_id query parameter
+        guard let url = URL(string: "\(baseURL)/api/posts/user_posts/?user_id=\(userId)") else {
+            throw URLError(.badURL)
+        }
+        
+        // 2. Create request
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
+        addAuthHeader(to: &request)
+        
+        // 3. Fetch Data (Network Call)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        // 4. Check response status
+        if let httpResponse = response as? HTTPURLResponse {
+            guard (200...299).contains(httpResponse.statusCode) else {
                 if let errorString = String(data: data, encoding: .utf8) {
                     print("Server error response: \(errorString)")
                     throw NSError(domain: "NetworkError", code: httpResponse.statusCode, userInfo: [

@@ -103,6 +103,30 @@ class PostViewSet(viewsets.ModelViewSet):
         posts = Post.objects.filter(creator=request.user).order_by('-created_at')
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'])
+    def user_posts(self, request):
+        """
+        Get all posts created by a specific user.
+        Query parameter: user_id (required)
+        """
+        user_id = request.query_params.get('user_id')
+        if not user_id:
+            return Response({'error': 'user_id query parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user_id_int = int(user_id)
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid user_id'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(pk=user_id_int)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        posts = Post.objects.filter(creator=user).order_by('-created_at')
+        serializer = self.get_serializer(posts, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def convert_to_shelf(self, request, pk=None):
@@ -117,19 +141,14 @@ class PostViewSet(viewsets.ModelViewSet):
         except Post.DoesNotExist:
             return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # For development: Allow if user is authenticated and is the creator, or if no auth is required
-        # In production, you should enforce authentication
-        # For development: Allow unauthenticated requests
-        # In production, you should enforce authentication and check ownership
-        user = request.user
-        if user.is_authenticated:
-            # If authenticated, check if user is the creator
-            if post.creator != user:
-                return Response({'error': 'You do not have permission to shelf this post.'}, status=status.HTTP_403_FORBIDDEN)
-        # If not authenticated, allow for development
-        # TODO: In production, require authentication:
-        # if not user.is_authenticated:
-        #     return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+        # Require authentication
+        if not request.user.is_authenticated:
+            return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Enforce ownership: only the post creator can list it for sale
+        # Compare by ID to ensure reliable comparison
+        if post.creator_id != request.user.id:
+            return Response({'error': 'You do not have permission to shelf this post.'}, status=status.HTTP_403_FORBIDDEN)
 
         # Check if SaleItem already exists for this post
         if hasattr(post, 'saleitem'):

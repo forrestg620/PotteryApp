@@ -20,6 +20,15 @@ struct PostDetailView: View {
     @State private var isCreatingPaymentIntent = false
     @State private var errorMessage: String?
     @State private var showingError = false
+    @ObservedObject private var networkManager = NetworkManager.shared
+    
+    // Computed property to check if current user is the post owner
+    private var isPostOwner: Bool {
+        guard let currentUserId = networkManager.currentUserId else {
+            return false
+        }
+        return post.creator == currentUserId
+    }
     
     init(post: Post) {
         self.initialPost = post
@@ -69,24 +78,30 @@ struct PostDetailView: View {
                         )
                 }
                 
-                // User Info Row
-                HStack(alignment: .center, spacing: 12) {
-                    Circle()
-                        .fill(Color.gray.opacity(0.5))
-                        .frame(width: 40, height: 40)
-                        .overlay(
-                            Image(systemName: "person.crop.circle")
-                                .font(.system(size: 28))
-                                .foregroundColor(.white)
-                        )
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(post.creatorUsername ?? "Unknown User")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        // Additional info (e.g., date) can go here
+                // User Info Row - Tappable to go to profile
+                NavigationLink(destination: UserProfileView(userId: post.creator, username: post.creatorUsername)) {
+                    HStack(alignment: .center, spacing: 12) {
+                        Circle()
+                            .fill(Color.gray.opacity(0.5))
+                            .frame(width: 40, height: 40)
+                            .overlay(
+                                Image(systemName: "person.crop.circle")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(.white)
+                            )
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(post.creatorUsername ?? "Unknown User")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            // Additional info (e.g., date) can go here
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                    Spacer()
                 }
+                .buttonStyle(PlainButtonStyle())
                 
                 // Caption
                 if let caption = post.caption, !caption.isEmpty {
@@ -127,8 +142,8 @@ struct PostDetailView: View {
 
                 Divider()
 
-                // "Sell" Section
-                if post.saleItem == nil {
+                // "Sell" Section - Only show if user is the post owner
+                if post.saleItem == nil && isPostOwner {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Want to sell this piece?")
                             .font(.headline)

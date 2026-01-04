@@ -8,11 +8,53 @@ struct FeedView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    if viewModel.isLoading {
-                        ProgressView().padding()
-                    } else if let error = viewModel.errorMessage {
-                        Text(error).foregroundColor(.red)
-                    } else {
+                    // Loading State: Show centered loading when posts are empty and loading
+                    if viewModel.posts.isEmpty && viewModel.isLoading {
+                        VStack {
+                            Spacer()
+                            ProgressView("Loading Kiln...")
+                                .padding()
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 400)
+                    }
+                    // Error State
+                    else if let error = viewModel.errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .padding()
+                    }
+                    // Empty State: Show when posts are empty and not loading
+                    else if viewModel.posts.isEmpty && !viewModel.isLoading {
+                        VStack(spacing: 20) {
+                            Spacer()
+                            Image(systemName: "tray.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray)
+                            
+                            Text("No pots found yet.")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            
+                            Button(action: {
+                                Task {
+                                    await viewModel.loadPosts()
+                                }
+                            }) {
+                                Text("Refresh")
+                                    .font(.body)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 24)
+                                    .padding(.vertical, 12)
+                                    .background(Color.blue)
+                                    .cornerRadius(8)
+                            }
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 400)
+                    }
+                    // Posts List
+                    else {
                         ForEach(viewModel.posts) { post in
                             NavigationLink(destination: PostDetailView(post: post)) {
                                 PostRow(post: post)
@@ -22,6 +64,9 @@ struct FeedView: View {
                         }
                     }
                 }
+            }
+            .refreshable {
+                await viewModel.loadPosts()
             }
             .navigationTitle("Pottery Feed")
             .toolbar {

@@ -71,11 +71,12 @@ class ShelfListingSerializer(serializers.Serializer):
 class ProfileSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
     username = serializers.CharField(read_only=True, source='user.username')
+    user_id = serializers.IntegerField(read_only=True, source='user.id')
     avatar = serializers.ImageField(write_only=True, required=False)
     
     class Meta:
         model = Profile
-        fields = ['username', 'avatar_url', 'intro', 'avatar']
+        fields = ['username', 'user_id', 'avatar_url', 'intro', 'avatar']
     
     def get_avatar_url(self, obj):
         request = self.context.get('request')

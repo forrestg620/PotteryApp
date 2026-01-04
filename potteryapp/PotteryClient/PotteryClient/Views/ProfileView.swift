@@ -16,6 +16,7 @@ struct ProfileView: View {
     @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
     @State private var showSourceSelection = false
     @State private var isUploadingAvatar = false
+    @State private var showCreatePost = false
     
     enum Tab: String, CaseIterable, Identifiable {
         case gallery = "Gallery"
@@ -191,6 +192,31 @@ struct ProfileView: View {
                         Text("Failed to load posts.")
                             .foregroundColor(.red)
                             .padding(.top, 60)
+                    } else if posts.isEmpty {
+                        // Empty State - Tappable to create post
+                        Button(action: {
+                            showCreatePost = true
+                        }) {
+                            VStack(spacing: 16) {
+                                Spacer()
+                                Image(systemName: "camera.metering.center.weighted")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.gray)
+                                
+                                Text("No pottery yet.")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                
+                                Text("Upload your first work!")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 300)
+                            .padding(.top, 60)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     } else {
                         LazyVGrid(columns: columns, spacing: 4) {
                             ForEach(filteredPosts(), id: \.id) { post in
@@ -309,6 +335,15 @@ struct ProfileView: View {
                 // Clear video if selected (we only want images for avatar)
                 if newURL != nil {
                     videoURL = nil
+                }
+            }
+            .sheet(isPresented: $showCreatePost) {
+                CreatePostView()
+            }
+            .onChange(of: showCreatePost) { oldValue, newValue in
+                // Refresh posts when create post sheet is dismissed
+                if oldValue == true && newValue == false {
+                    fetchPosts()
                 }
             }
             .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea())
