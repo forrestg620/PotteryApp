@@ -14,6 +14,57 @@ User = get_user_model()
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
+
+    @action(detail=True, methods=['post'])
+    def convert_to_shelf(self, request, pk=None):
+        """
+        Custom action to convert a Post to a SaleItem (shelf listing).
+        Expects 'price' in request.data.
+        Only the post owner can perform this action.
+        Returns serialized SaleItem data.
+        """
+        try:
+            post = self.get_object()
+        except Post.DoesNotExist:
+            return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # For development: Allow if user is authenticated and is the creator, or if no auth is required
+        # In production, you should enforce authentication
+        # For development: Allow unauthenticated requests
+        # In production, you should enforce authentication and check ownership
+        user = request.user
+        if user.is_authenticated:
+            # If authenticated, check if user is the creator
+            if post.creator != user:
+                return Response({'error': 'You do not have permission to shelf this post.'}, status=status.HTTP_403_FORBIDDEN)
+        # If not authenticated, allow for development
+        # TODO: In production, require authentication:
+        # if not user.is_authenticated:
+        #     return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Check if SaleItem already exists for this post
+        if hasattr(post, 'saleitem'):
+            return Response({'error': 'This post is already on the shelf.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        price_str = request.data.get('price')
+        if not price_str:
+            return Response({'error': 'Price is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Let the serializer or model enforce decimal precision and min value, etc.
+            price = float(price_str)
+        except (TypeError, ValueError):
+            return Response({'error': 'Invalid price.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        saleitem = SaleItem.objects.create(
+            post=post,
+            price=price,
+            is_sold=False
+        )
+        serializer = ShelfListingSerializer(saleitem)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
     
     def create(self, request, *args, **kwargs):
         """

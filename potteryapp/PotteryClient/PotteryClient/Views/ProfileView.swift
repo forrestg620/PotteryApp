@@ -66,66 +66,69 @@ struct ProfileView: View {
                     } else {
                         LazyVGrid(columns: columns, spacing: 4) {
                             ForEach(filteredPosts(), id: \.id) { post in
-                                GeometryReader { geometry in
-                                    ZStack {
-                                        // Square image with aspect ratio - crop instead of resize
-                                        KFImage(post.coverImageURL)
-                                            .placeholder {
-                                                Rectangle()
-                                                    .fill(Color.gray.opacity(0.2))
-                                                    .overlay(
-                                                        Image(systemName: "photo")
-                                                            .resizable()
-                                                            .scaledToFit()
-                                                            .foregroundColor(.gray)
-                                                            .padding(12)
-                                                    )
-                                            }
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: geometry.size.width, height: geometry.size.width)
-                                            .clipped()
-                                        
-                                        // Play icon overlay for videos (top trailing corner)
-                                        if post.media.first?.mediaType == "video" {
-                                            VStack {
-                                                HStack {
-                                                    Spacer()
-                                                    Image(systemName: "play.fill")
-                                                        .font(.caption)
-                                                        .foregroundColor(.white)
-                                                        .padding(6)
-                                                        .background(Color.black.opacity(0.6))
-                                                        .clipShape(Circle())
-                                                        .padding(6)
+                                NavigationLink(destination: PostDetailView(post: post)) {
+                                    GeometryReader { geometry in
+                                        ZStack {
+                                            // Square image with aspect ratio - crop instead of resize
+                                            KFImage(post.coverImageURL)
+                                                .placeholder {
+                                                    Rectangle()
+                                                        .fill(Color.gray.opacity(0.2))
+                                                        .overlay(
+                                                            Image(systemName: "photo")
+                                                                .resizable()
+                                                                .scaledToFit()
+                                                                .foregroundColor(.gray)
+                                                                .padding(12)
+                                                        )
                                                 }
-                                                Spacer()
-                                            }
-                                        }
-                                        
-                                        // Sale badge (bottom trailing)
-                                        if post.saleItem != nil {
-                                            VStack {
-                                                Spacer()
-                                                HStack {
-                                                    Spacer()
-                                                    ZStack {
-                                                        Circle()
-                                                            .fill(Color.green)
-                                                            .frame(width: 24, height: 24)
-                                                        Text("$")
-                                                            .font(.caption).bold()
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: geometry.size.width, height: geometry.size.width)
+                                                .clipped()
+                                            
+                                            // Play icon overlay for videos (top trailing corner)
+                                            if post.media.first?.mediaType == "video" {
+                                                VStack {
+                                                    HStack {
+                                                        Spacer()
+                                                        Image(systemName: "play.fill")
+                                                            .font(.caption)
                                                             .foregroundColor(.white)
+                                                            .padding(6)
+                                                            .background(Color.black.opacity(0.6))
+                                                            .clipShape(Circle())
+                                                            .padding(6)
                                                     }
-                                                    .padding(6)
+                                                    Spacer()
+                                                }
+                                            }
+                                            
+                                            // Sale badge (bottom trailing)
+                                            if post.saleItem != nil {
+                                                VStack {
+                                                    Spacer()
+                                                    HStack {
+                                                        Spacer()
+                                                        ZStack {
+                                                            Circle()
+                                                                .fill(Color.green)
+                                                                .frame(width: 24, height: 24)
+                                                            Text("$")
+                                                                .font(.caption).bold()
+                                                                .foregroundColor(.white)
+                                                        }
+                                                        .padding(6)
+                                                    }
                                                 }
                                             }
                                         }
                                     }
+                                    .aspectRatio(1, contentMode: .fit)
+                                    .cornerRadius(6)
+                                    .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 2)
                                 }
-                                .aspectRatio(1, contentMode: .fit)
-                                .cornerRadius(6)
-                                .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 2)
+                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                         .padding(.horizontal, 6)

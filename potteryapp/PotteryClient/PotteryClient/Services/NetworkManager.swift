@@ -6,11 +6,17 @@ class NetworkManager {
     static let shared = NetworkManager()
     
     // Base URL for the Django backend
-     private let baseURL = "https://episcopally-jennifer-preaccessible.ngrok-free.dev"
-//   private let baseURL = "http://127.0.0.1:8000"
+    //  private let baseURL = "https://episcopally-jennifer-preaccessible.ngrok-free.dev"
+  private let baseURL = "http://127.0.0.1:8000"
     
+    // Auth token for API requests
+    private var authToken: String?
     
     private init() {}
+    
+    func setAuthToken(_ token: String?) {
+        authToken = token
+    }
     
     func fetchPosts() async throws -> [Post] {
         // 1. Construct the URL
@@ -30,6 +36,14 @@ class NetworkManager {
         // 4. Check response status
         if let httpResponse = response as? HTTPURLResponse {
             guard (200...299).contains(httpResponse.statusCode) else {
+                // Try to decode error message from response
+                if let errorString = String(data: data, encoding: .utf8) {
+                    print("Server error response: \(errorString)")
+                    throw NSError(domain: "NetworkError", code: httpResponse.statusCode, userInfo: [
+                        NSLocalizedDescriptionKey: "Server error: \(httpResponse.statusCode)",
+                        "response": errorString
+                    ])
+                }
                 throw URLError(.badServerResponse)
             }
         }
@@ -208,6 +222,50 @@ class NetworkManager {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         // 8. Check response status
+        if let httpResponse = response as? HTTPURLResponse {
+            guard (200...299).contains(httpResponse.statusCode) else {
+                // Try to decode error message from response
+                if let errorString = String(data: data, encoding: .utf8) {
+                    print("Server error response: \(errorString)")
+                    throw NSError(domain: "NetworkError", code: httpResponse.statusCode, userInfo: [
+                        NSLocalizedDescriptionKey: "Server error: \(httpResponse.statusCode)",
+                        "response": errorString
+                    ])
+                }
+                throw URLError(.badServerResponse)
+            }
+        }
+    }
+    
+    func convertPostToShelf(postId: Int, price: Double) async throws {
+        // 1. Construct the URL
+        guard let url = URL(string: "\(baseURL)/api/posts/\(postId)/convert_to_shelf/") else {
+            throw URLError(.badURL)
+        }
+        
+        // 2. Create JSON body
+        let body: [String: Double] = ["price": price]
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+        
+        // 3. Create request
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
+        
+        // 4. Add Authorization header if token is available
+        if let token = authToken {
+            request.setValue("Token \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        request.httpBody = jsonData
+        
+        // 5. Execute request
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        // 6. Check response status
         if let httpResponse = response as? HTTPURLResponse {
             guard (200...299).contains(httpResponse.statusCode) else {
                 // Try to decode error message from response
